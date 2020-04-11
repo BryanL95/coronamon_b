@@ -6,11 +6,13 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"time"
 )
 
 var (
-	URLTOLOAD  string = "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_daily_reports/"
-	currentDay string = "04-10-2020"
+	current_time        = time.Now().Local().AddDate(0, 0, -1)
+	URLTOLOAD    string = "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_daily_reports/"
+	currentDay   string = current_time.Format("01-02-2006")
 )
 
 func LoadData() ([][]string, error) {

@@ -8,14 +8,26 @@ import (
 )
 
 func Server(w http.ResponseWriter, r *http.Request) {
-	response, error := data.LoadData()
 
-	if error != nil {
-		log.Println("Error to response server, check loadData function")
-		http.Error(w, error.Error(), http.StatusInternalServerError)
-		return
+	route := r.URL.RequestURI()
+	w.Header().Set("Content-type", "application/json")
+
+	switch route {
+	case "/":
+		response, error := data.LoadData()
+
+		if error != nil {
+			log.Println("Error to response server, check loadData function")
+			http.Error(w, error.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.Write(response)
+	case "/last-day":
+		w.Write([]byte{})
+	case "/last-day-c":
+		w.Write([]byte{})
+	case "/country":
+		w.Write([]byte{})
 	}
 
-	w.Header().Set("Content-type", "application/json")
-	w.Write(response)
 }

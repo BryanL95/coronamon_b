@@ -1,7 +1,6 @@
 package server
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 
@@ -9,11 +8,14 @@ import (
 )
 
 func Server(w http.ResponseWriter, r *http.Request) {
-	_, err := data.LoadData()
+	response, error := data.LoadData()
 
-	if err != nil {
-		log.Println("Error to call function loadData")
+	if error != nil {
+		log.Println("Error to response server, check loadData function")
+		http.Error(w, error.Error(), http.StatusInternalServerError)
+		return
 	}
 
-	fmt.Fprintf(w, "Response")
+	w.Header().Set("Content-type", "application/json")
+	w.Write(response)
 }

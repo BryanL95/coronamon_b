@@ -14,6 +14,15 @@ func Server(w http.ResponseWriter, r *http.Request) {
 
 	switch route {
 	case "/":
+		response, error := data.GeneralData()
+
+		if error != nil {
+			log.Println("Error to response server, check GeneralData function")
+			http.Error(w, error.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.Write(response)
+	case "/last-day":
 		response, error := data.LoadData()
 
 		if error != nil {
@@ -22,8 +31,6 @@ func Server(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		w.Write(response)
-	case "/last-day":
-		w.Write([]byte{})
 	case "/last-day-c":
 		w.Write([]byte{})
 	case "/country":

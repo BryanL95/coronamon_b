@@ -3,10 +3,10 @@ package data
 import (
 	"encoding/csv"
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"strconv"
+	"sync"
 )
 
 var (
@@ -18,13 +18,24 @@ var (
 )
 
 func GeneralData() ([]byte, error) {
-	err := requestConfirmed()
 
-	if err != nil {
-		fmt.Println("Error")
-	}
+	wg := &sync.WaitGroup{}
+	ch1 := make(chan *[]GeneralJSON)
+	ch2 := make(chan *[]GeneralJSON)
+	ch3 := make(chan *[]GeneralJSON)
+	wg.Add(3)
 
-	encode, errEncode := json.Marshal(&globalJson)
+	go requestConfirmed("c", wg, ch1)
+	go requestConfirmed("d", wg, ch2)
+	go requestConfirmed("r", wg, ch3)
+
+	globalJson := <-ch1
+	globalJson = <-ch2
+	globalJson = <-ch3
+
+	wg.Wait()
+
+	encode, errEncode := json.Marshal(globalJson)
 	if errEncode != nil {
 		log.Println("Error to encode data json to bytes")
 		return nil, errEncode
@@ -33,22 +44,34 @@ func GeneralData() ([]byte, error) {
 	return encode, nil
 }
 
-func requestConfirmed() error {
-	resp, err := http.Get(URLCONFIRMED)
+func requestConfirmed(typeRequest string, wg *sync.WaitGroup, ch chan *[]GeneralJSON) {
+	var resp *http.Response
+	var err error
+
+	switch typeRequest {
+	case "c":
+		resp, err = http.Get(URLCONFIRMED)
+	case "d":
+		resp, err = http.Get(URLDEATHS)
+	case "r":
+		resp, err = http.Get(URLRECOVERED)
+	default:
+		resp, err = http.Get(URLCONFIRMED)
+	}
 
 	if err != nil {
 		log.Println("Error to load data, please check source")
-		return err
+		//return &globalJson
 	}
 
 	defer resp.Body.Close()
 
 	reader := csv.NewReader(resp.Body)
 
-	dataReader, err := reader.ReadAll()
-	if err != nil {
+	dataReader, errRead := reader.ReadAll()
+	if errRead != nil {
 		log.Println("Error to convert data csv, please contact to administrator")
-		return err
+		//return &globalJson
 	}
 
 	for id, row := range dataReader {
@@ -56,13 +79,22 @@ func requestConfirmed() error {
 			continue
 		}
 		counter, _ := strconv.Atoi(row[len(row)-1])
-		temporalToStruct(row[1], counter, &globalJson)
+		if typeRequest == "c" {
+			confirmToStruct(row[1], counter, &globalJson)
+		} else if typeRequest == "d" {
+			deathToStruct(row[1], counter, &globalJson)
+		} else {
+			recoverToStruct(row[1], counter, &globalJson)
+		}
+
 	}
 
-	return nil
+	ch <- &globalJson
+	wg.Done()
+	//return &globalJson
 }
 
-func temporalToStruct(country string, number int, allData *[]GeneralJSON) {
+func confirmToStruct(country string, number int, allData *[]GeneralJSON) {
 	var localData GeneralJSON
 	if len(*allData) > 0 {
 		if ok := validateExist(country, allData); ok != -1 {
@@ -79,6 +111,40 @@ func temporalToStruct(country string, number int, allData *[]GeneralJSON) {
 	}
 }
 
+func deathToStruct(country string, number int, allData *[]GeneralJSON) {
+	var localData GeneralJSON
+	if len(*allData) > 0 {
+		if ok := validateExist(country, allData); ok != -1 {
+			(*allData)[ok].Deaths += int32(number)
+		} else {
+			localData.Country = country
+			localData.Deaths = int32(number)
+			*allData = append(*allData, localData)
+		}
+	} else {
+		localData.Country = country
+		localData.Deaths = int32(number)
+		*allData = append(*allData, localData)
+	}
+}
+
+func recoverToStruct(country string, number int, allData *[]GeneralJSON) {
+	var localData GeneralJSON
+	if len(*allData) > 0 {
+		if ok := validateExist(country, allData); ok != -1 {
+			(*allData)[ok].Recovered += int32(number)
+		} else {
+			localData.Country = country
+			localData.Recovered = int32(number)
+			*allData = append(*allData, localData)
+		}
+	} else {
+		localData.Country = country
+		localData.Recovered = int32(number)
+		*allData = append(*allData, localData)
+	}
+}
+
 func validateExist(country string, allData *[]GeneralJSON) int {
 	for key, val := range *allData {
 		if val.Country == country {
@@ -87,26 +153,3 @@ func validateExist(country string, allData *[]GeneralJSON) int {
 	}
 	return -1
 }
-
-/*func requestDeaths() {
-
-}
-
-func requestRecovered() {
-
-}
-
-func requestToGeneralCSV() error {
-
-	jsonData, err := json.Marshal(allJson)
-	if err != nil {
-		log.Println("Error to convert data to json")
-	}
-
-	if err := Transform(&jsonData, currentDay); err != nil {
-		log.Println("Error to create json")
-	}
-
-	return nil
-}
-*/

@@ -67,13 +67,13 @@ func requestToCSV() error {
 		return err
 	}
 
-	var dataToJson DataJSON
+	//var dataToJson DataJSON
 
 	for id, row := range dataReader {
 		if id == 0 {
 			continue
 		}
-		dataToJson.Country = row[3]
+		/*dataToJson.Country = row[3]
 		i64, _ := strconv.ParseInt(row[7], 10, 32)
 		dataToJson.Confirmed = int32(i64)
 		i64, _ = strconv.ParseInt(row[8], 10, 32)
@@ -81,10 +81,14 @@ func requestToCSV() error {
 		i64, _ = strconv.ParseInt(row[9], 10, 32)
 		dataToJson.Recovered = int32(i64)
 
-		allJson = append(allJson, dataToJson)
+		allJson = append(allJson, dataToJson)*/
+		confirmed, _ := strconv.Atoi(row[7])
+		death, _ := strconv.Atoi(row[8])
+		recovered, _ := strconv.Atoi(row[9])
+		dataToStruct(confirmed, death, recovered, row[3], &allJson)
 	}
 
-	jsonData, err := json.Marshal(allJson)
+	jsonData, err := json.Marshal(&allJson)
 	if err != nil {
 		log.Println("Error to convert data to json")
 	}
@@ -94,6 +98,39 @@ func requestToCSV() error {
 	}
 
 	return nil
+}
+
+func dataToStruct(confirmed int, deaths int, recovered int, country string, dataJson *[]DataJSON) {
+	var dataDaily DataJSON
+	if len(*dataJson) > 0 {
+		if ok := validateExistDayly(country, dataJson); ok != -1 {
+			(*dataJson)[ok].Confirmed += int32(confirmed)
+			(*dataJson)[ok].Deaths += int32(deaths)
+			(*dataJson)[ok].Recovered += int32(recovered)
+		} else {
+			dataDaily.Country = country
+			dataDaily.Confirmed = int32(confirmed)
+			dataDaily.Deaths = int32(deaths)
+			dataDaily.Recovered = int32(recovered)
+			*dataJson = append(*dataJson, dataDaily)
+		}
+	} else {
+		dataDaily.Country = country
+		dataDaily.Confirmed = int32(confirmed)
+		dataDaily.Deaths = int32(deaths)
+		dataDaily.Recovered = int32(recovered)
+		*dataJson = append(*dataJson, dataDaily)
+	}
+}
+
+/*Refactor, se puede crear una funcion global que utilice generalData y locaData*/
+func validateExistDayly(country string, allData *[]DataJSON) int {
+	for key, val := range *allData {
+		if val.Country == country {
+			return key
+		}
+	}
+	return -1
 }
 
 func loadJSON() error {
@@ -111,5 +148,4 @@ func loadJSON() error {
 	json.Unmarshal(bytesValue, &allJson)
 
 	return nil
-	//return allJson, nil
 }

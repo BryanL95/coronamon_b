@@ -3,8 +3,10 @@ package data
 import (
 	"encoding/csv"
 	"encoding/json"
+	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 	"sync"
 )
@@ -18,6 +20,36 @@ var (
 )
 
 func GeneralData() ([]byte, error) {
+
+	_, errInfo := os.Stat("general.json")
+
+	if os.IsNotExist(errInfo) {
+		//Execute function for create a file
+		if errorRequest := generateJson(); errorRequest != nil {
+			log.Println("Error to execute function for create a json file from csv")
+			return nil, errorRequest
+		}
+
+		if err := loadGeneralJSON(); err != nil {
+			log.Println("Error into load json file function")
+		}
+	} else {
+		//Load local file
+		if err := loadGeneralJSON(); err != nil {
+			log.Println("Error into load json file function")
+		}
+	}
+
+	encode, errEncode := json.Marshal(&globalJson)
+	if errEncode != nil {
+		log.Println("Error to encode data json to bytes")
+		return nil, errEncode
+	}
+
+	return encode, nil
+}
+
+func generateJson() error {
 
 	wg := &sync.WaitGroup{}
 	ch1 := make(chan *[]GeneralJSON)
@@ -35,13 +67,16 @@ func GeneralData() ([]byte, error) {
 
 	wg.Wait()
 
-	encode, errEncode := json.Marshal(globalJson)
-	if errEncode != nil {
-		log.Println("Error to encode data json to bytes")
-		return nil, errEncode
+	jsonData, err := json.Marshal(globalJson)
+	if err != nil {
+		log.Println("Error to convert data to json")
 	}
 
-	return encode, nil
+	if err := TransformGeneral(&jsonData, currentDay); err != nil {
+		log.Println("Error to create json")
+	}
+
+	return nil
 }
 
 func requestConfirmed(typeRequest string, wg *sync.WaitGroup, ch chan *[]GeneralJSON) {
@@ -145,6 +180,7 @@ func recoverToStruct(country string, number int, allData *[]GeneralJSON) {
 	}
 }
 
+/* Funciones para refactor */
 func validateExist(country string, allData *[]GeneralJSON) int {
 	for key, val := range *allData {
 		if val.Country == country {
@@ -152,4 +188,21 @@ func validateExist(country string, allData *[]GeneralJSON) int {
 		}
 	}
 	return -1
+}
+
+func loadGeneralJSON() error {
+	jsonFile, err := os.Open("general.json")
+
+	if err != nil {
+		log.Println("Error to load json file")
+		return err
+	}
+
+	defer jsonFile.Close()
+
+	bytesValue, _ := ioutil.ReadAll(jsonFile)
+
+	json.Unmarshal(bytesValue, &globalJson)
+
+	return nil
 }

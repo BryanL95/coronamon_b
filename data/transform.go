@@ -32,3 +32,17 @@ func Transform(json *[]byte, date string) error {
 
 	return nil
 }
+
+func TransformGeneral(json *[]byte, date string) error {
+	jsonFile, err := os.Create("general.json")
+	if err != nil {
+		log.Println("Error to create json file")
+		return err
+	}
+
+	defer jsonFile.Close()
+	jsonFile.Write(*json)
+	jsonFile.Close()
+
+	return nil
+}

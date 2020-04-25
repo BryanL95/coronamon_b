@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"sync"
 )
 
@@ -19,7 +20,7 @@ var (
 	globalJson   []GeneralJSON
 )
 
-func GeneralData() ([]byte, error) {
+func GeneralData(country string) ([]byte, error) {
 
 	_, errInfo := os.Stat("general.json")
 
@@ -29,14 +30,22 @@ func GeneralData() ([]byte, error) {
 			log.Println("Error to execute function for create a json file from csv")
 			return nil, errorRequest
 		}
-
 		if err := loadGeneralJSON(); err != nil {
 			log.Println("Error into load json file function")
 		}
+
+		if country != "" {
+			filterByCountry(country, &globalJson)
+		}
+
 	} else {
 		//Load local file
 		if err := loadGeneralJSON(); err != nil {
 			log.Println("Error into load json file function")
+		}
+
+		if country != "" {
+			filterByCountry(country, &globalJson)
 		}
 	}
 
@@ -205,4 +214,15 @@ func loadGeneralJSON() error {
 	json.Unmarshal(bytesValue, &globalJson)
 
 	return nil
+}
+
+func filterByCountry(country string, jsonFilter *[]GeneralJSON) {
+	var tmp []GeneralJSON
+	for _, val := range *jsonFilter {
+		if country == strings.ToLower(val.Country) {
+			tmp := append(tmp, val)
+			(*jsonFilter) = tmp
+			break
+		}
+	}
 }

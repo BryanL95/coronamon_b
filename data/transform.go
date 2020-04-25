@@ -35,7 +35,7 @@ func Transform(json *[]byte, date string) error {
 }
 
 func TransformGeneral(json *[]byte, date string) error {
-	jsonFile, err := os.Create("general.json")
+	jsonFile, err := os.Create(currentDay + "general.json")
 	if err != nil {
 		log.Println("Error to create json file")
 		return err
@@ -46,4 +46,8 @@ func TransformGeneral(json *[]byte, date string) error {
 	jsonFile.Close()
 
 	return nil
+}
+
+func delete(name string) {
+	_ = os.Remove(name)
 }

@@ -22,7 +22,7 @@ var (
 
 func GeneralData(country string) ([]byte, error) {
 
-	_, errInfo := os.Stat("general.json")
+	_, errInfo := os.Stat(currentDay + "general.json")
 
 	if os.IsNotExist(errInfo) {
 		//Execute function for create a file
@@ -54,6 +54,14 @@ func GeneralData(country string) ([]byte, error) {
 		log.Println("Error to encode data json to bytes")
 		return nil, errEncode
 	}
+
+	go func() {
+		nameToDelete := fiveFormat + "general.json"
+		_, errInfo := os.Stat(nameToDelete)
+		if !os.IsNotExist(errInfo) {
+			delete(nameToDelete)
+		}
+	}()
 
 	return encode, nil
 }
@@ -200,7 +208,7 @@ func validateExist(country string, allData *[]GeneralJSON) int {
 }
 
 func loadGeneralJSON() error {
-	jsonFile, err := os.Open("general.json")
+	jsonFile, err := os.Open(currentDay + "general.json")
 
 	if err != nil {
 		log.Println("Error to load json file")

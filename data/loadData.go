@@ -14,7 +14,9 @@ import (
 
 var (
 	current_time        = time.Now().Local().AddDate(0, 0, -1)
+	five_days           = time.Now().Local().AddDate(0, 0, -5)
 	URLTOLOAD    string = "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_daily_reports/"
+	fiveFormat   string = five_days.Format("01-02-2006")
 	currentDay   string = current_time.Format("01-02-2006")
 	allJson      []DataJSON
 )
@@ -55,6 +57,14 @@ func LoadData(country string) ([]byte, error) {
 		log.Println("Error to encode data json to bytes")
 		return nil, errEncode
 	}
+
+	go func() {
+		nameToDelete := fiveFormat + ".json"
+		_, errInfo := os.Stat(nameToDelete)
+		if !os.IsNotExist(errInfo) {
+			delete(nameToDelete)
+		}
+	}()
 
 	return encode, nil
 }

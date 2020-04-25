@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -18,7 +19,7 @@ var (
 	allJson      []DataJSON
 )
 
-func LoadData() ([]byte, error) {
+func LoadData(country string) ([]byte, error) {
 
 	// Check if file exist
 	_, errInfo := os.Stat(currentDay + ".json")
@@ -33,10 +34,19 @@ func LoadData() ([]byte, error) {
 		if err := loadJSON(); err != nil {
 			log.Println("Error into load json file function")
 		}
+
+		if country != "" {
+			filterByCountryLast(country, &allJson)
+		}
+
 	} else {
 		//Load local file
 		if err := loadJSON(); err != nil {
 			log.Println("Error into load json file function")
+		}
+
+		if country != "" {
+			filterByCountryLast(country, &allJson)
 		}
 	}
 
@@ -148,4 +158,15 @@ func loadJSON() error {
 	json.Unmarshal(bytesValue, &allJson)
 
 	return nil
+}
+
+func filterByCountryLast(country string, jsonFilter *[]DataJSON) {
+	var tmp []DataJSON
+	for _, val := range *jsonFilter {
+		if country == strings.ToLower(val.Country) {
+			tmp := append(tmp, val)
+			(*jsonFilter) = tmp
+			break
+		}
+	}
 }

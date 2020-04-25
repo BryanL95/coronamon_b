@@ -5,6 +5,7 @@ import (
 	"os"
 )
 
+/* Use only one structure for general and daily data - IMPORTANT REFACTOR */
 type DataJSON struct {
 	Country   string
 	Confirmed int32

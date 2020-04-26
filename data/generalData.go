@@ -3,12 +3,10 @@ package data
 import (
 	"encoding/csv"
 	"encoding/json"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 	"strconv"
-	"strings"
 	"sync"
 )
 
@@ -17,20 +15,20 @@ var (
 	URLDEATHS    string = "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_deaths_global.csv"
 	URLRECOVERED string = "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_recovered_global.csv"
 	name         string = "time_series_covid19_global"
-	globalJson   []GeneralJSON
+	globalJson   []DataJSON
 )
 
 func GeneralData(country string) ([]byte, error) {
 
-	_, errInfo := os.Stat(currentDay + "general.json")
+	exist := fileExist(true)
 
-	if os.IsNotExist(errInfo) {
+	if !exist {
 		//Execute function for create a file
 		if errorRequest := generateJson(); errorRequest != nil {
 			log.Println("Error to execute function for create a json file from csv")
 			return nil, errorRequest
 		}
-		if err := loadGeneralJSON(); err != nil {
+		if err := loadJSON("general", &globalJson); err != nil {
 			log.Println("Error into load json file function")
 		}
 
@@ -40,7 +38,7 @@ func GeneralData(country string) ([]byte, error) {
 
 	} else {
 		//Load local file
-		if err := loadGeneralJSON(); err != nil {
+		if err := loadJSON("general", &globalJson); err != nil {
 			log.Println("Error into load json file function")
 		}
 
@@ -69,9 +67,9 @@ func GeneralData(country string) ([]byte, error) {
 func generateJson() error {
 
 	wg := &sync.WaitGroup{}
-	ch1 := make(chan *[]GeneralJSON)
-	ch2 := make(chan *[]GeneralJSON)
-	ch3 := make(chan *[]GeneralJSON)
+	ch1 := make(chan *[]DataJSON)
+	ch2 := make(chan *[]DataJSON)
+	ch3 := make(chan *[]DataJSON)
 	wg.Add(3)
 
 	go requestConfirmed("c", wg, ch1)
@@ -89,14 +87,14 @@ func generateJson() error {
 		log.Println("Error to convert data to json")
 	}
 
-	if err := TransformGeneral(&jsonData, currentDay); err != nil {
+	if err := Transform(&jsonData, true); err != nil {
 		log.Println("Error to create json")
 	}
 
 	return nil
 }
 
-func requestConfirmed(typeRequest string, wg *sync.WaitGroup, ch chan *[]GeneralJSON) {
+func requestConfirmed(typeRequest string, wg *sync.WaitGroup, ch chan *[]DataJSON) {
 	var resp *http.Response
 	var err error
 
@@ -113,7 +111,6 @@ func requestConfirmed(typeRequest string, wg *sync.WaitGroup, ch chan *[]General
 
 	if err != nil {
 		log.Println("Error to load data, please check source")
-		//return &globalJson
 	}
 
 	defer resp.Body.Close()
@@ -123,7 +120,6 @@ func requestConfirmed(typeRequest string, wg *sync.WaitGroup, ch chan *[]General
 	dataReader, errRead := reader.ReadAll()
 	if errRead != nil {
 		log.Println("Error to convert data csv, please contact to administrator")
-		//return &globalJson
 	}
 
 	for id, row := range dataReader {
@@ -143,11 +139,10 @@ func requestConfirmed(typeRequest string, wg *sync.WaitGroup, ch chan *[]General
 
 	ch <- &globalJson
 	wg.Done()
-	//return &globalJson
 }
 
-func confirmToStruct(country string, number int, allData *[]GeneralJSON) {
-	var localData GeneralJSON
+func confirmToStruct(country string, number int, allData *[]DataJSON) {
+	var localData DataJSON
 	if len(*allData) > 0 {
 		if ok := validateExist(country, allData); ok != -1 {
 			(*allData)[ok].Confirmed += int32(number)
@@ -163,8 +158,8 @@ func confirmToStruct(country string, number int, allData *[]GeneralJSON) {
 	}
 }
 
-func deathToStruct(country string, number int, allData *[]GeneralJSON) {
-	var localData GeneralJSON
+func deathToStruct(country string, number int, allData *[]DataJSON) {
+	var localData DataJSON
 	if len(*allData) > 0 {
 		if ok := validateExist(country, allData); ok != -1 {
 			(*allData)[ok].Deaths += int32(number)
@@ -180,8 +175,8 @@ func deathToStruct(country string, number int, allData *[]GeneralJSON) {
 	}
 }
 
-func recoverToStruct(country string, number int, allData *[]GeneralJSON) {
-	var localData GeneralJSON
+func recoverToStruct(country string, number int, allData *[]DataJSON) {
+	var localData DataJSON
 	if len(*allData) > 0 {
 		if ok := validateExist(country, allData); ok != -1 {
 			(*allData)[ok].Recovered += int32(number)
@@ -194,43 +189,5 @@ func recoverToStruct(country string, number int, allData *[]GeneralJSON) {
 		localData.Country = country
 		localData.Recovered = int32(number)
 		*allData = append(*allData, localData)
-	}
-}
-
-/* Funciones para refactor */
-func validateExist(country string, allData *[]GeneralJSON) int {
-	for key, val := range *allData {
-		if val.Country == country {
-			return key
-		}
-	}
-	return -1
-}
-
-func loadGeneralJSON() error {
-	jsonFile, err := os.Open(currentDay + "general.json")
-
-	if err != nil {
-		log.Println("Error to load json file")
-		return err
-	}
-
-	defer jsonFile.Close()
-
-	bytesValue, _ := ioutil.ReadAll(jsonFile)
-
-	json.Unmarshal(bytesValue, &globalJson)
-
-	return nil
-}
-
-func filterByCountry(country string, jsonFilter *[]GeneralJSON) {
-	var tmp []GeneralJSON
-	for _, val := range *jsonFilter {
-		if country == strings.ToLower(val.Country) {
-			tmp := append(tmp, val)
-			(*jsonFilter) = tmp
-			break
-		}
 	}
 }

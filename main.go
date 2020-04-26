@@ -1,9 +1,7 @@
 package main
 
 import (
-	"log"
 	"net/http"
-	"os"
 
 	"github.com/coronamon/server"
 	"github.com/gorilla/mux"
@@ -20,17 +18,20 @@ func main() {
 	r.HandleFunc("/last-day", server.Last)           //Load data by last day confirmed general
 	r.HandleFunc("/last-day/{country}", server.Last) //load data by country from last day
 
-	//http.ListenAndServe(":3000", r) //Pass handler (r) to server
-	err := http.ListenAndServe(getPort(), r) //Pass handler (r) to server
+	http.ListenAndServe(":3000", r) //Pass handler (r) to server
+	/*err := http.ListenAndServe(getPort(), r) //Pass handler (r) to server
 	if err != nil {
 		log.Println("ListenAndServe", err)
-	}
+	}*/
 }
 
-func getPort() string {
+/*
+* Only enabled for heroku
+ */
+/*func getPort() string {
 	var port = os.Getenv("PORT")
 	if port == "" {
 		port = "4747"
 	}
 	return ":" + port
-}
+}*/

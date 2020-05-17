@@ -14,8 +14,11 @@ var (
 	allJson   []DataJSON
 )
 
-func LoadData(country string) ([]byte, error) {
-
+func LoadData(country string, date string) ([]byte, error) {
+	restartCurrentDate()
+	if date != "" {
+		currentDay = date
+	}
 	// Check if file exist
 	exist := fileExist(false)
 
@@ -63,6 +66,8 @@ func LoadData(country string) ([]byte, error) {
 }
 
 func requestToCSV() error {
+	//If call this function is neccesary restar variable for to load new data by date
+	allJson = nil
 	resp, err := http.Get(URLTOLOAD + currentDay + ".csv")
 
 	if err != nil {

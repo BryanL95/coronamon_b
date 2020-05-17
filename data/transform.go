@@ -23,6 +23,10 @@ type DataJSON struct {
 	Recovered int32
 }
 
+func restartCurrentDate() {
+	currentDay = current_time.Format("01-02-2006")
+}
+
 func fileExist(general bool) bool {
 	var errInfo error
 	if general {

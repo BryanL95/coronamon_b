@@ -19,7 +19,7 @@ var (
 )
 
 func GeneralData(country string) ([]byte, error) {
-
+	restartCurrentDate()
 	exist := fileExist(true)
 
 	if !exist {
